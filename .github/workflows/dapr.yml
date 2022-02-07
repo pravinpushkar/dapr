@@ -16,9 +16,7 @@ name: dapr
 on:
   push:
     branches:
-      - master
-      - release-*
-      - feature/*
+      - feature/publish_gcr_image
     tags:
       - v*
   pull_request:
@@ -114,14 +112,6 @@ jobs:
           rm -r protoc protoc-3.14.0-linux-x86_64.zip
           make init-proto
           make gen-proto check-proto-diff
-      - name: Run make test
-        env:
-          COVERAGE_OPTS: "-coverprofile=coverage.txt -covermode=atomic"
-        if: matrix.target_arch == 'amd64'
-        run: make test
-      - name: Codecov
-        if: matrix.target_arch == 'amd64' && matrix.target_os == 'linux'
-        uses: codecov/codecov-action@v1
       - name: Run make release to build and archive binaries
         run: |
           mkdir -p ${{ env.ARCHIVE_OUTDIR }}
@@ -137,21 +127,18 @@ jobs:
         with:
           name: dapr_grafana_dashboards
           path: ./grafana/*.json
-      - name: docker login
+      - name: ghcr login-1
         if: matrix.target_os != 'darwin' && github.event_name != 'pull_request'
-        run: |
-          docker login -u ${{ secrets.DOCKER_REGISTRY_ID }} -p ${{ secrets.DOCKER_REGISTRY_PASS }}
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: pravinpushkar
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker images
         if: matrix.target_os != 'darwin' && github.event_name != 'pull_request'
         run: |
           echo "Build docker image and push image..."
-          make docker-push TARGET_OS=${{ matrix.target_os }} TARGET_ARCH=${{ matrix.target_arch }} DAPR_REGISTRY=${{ secrets.DOCKER_REGISTRY }} DAPR_TAG=${{ env.REL_VERSION }}
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@master
-        with:
-          name: ${{ matrix.target_os }}_${{ matrix.target_arch }}_test_unit.json
-          path: ${{ env.TEST_OUTPUT_FILE_PREFIX }}_unit.json
+          make docker-push TARGET_OS=${{ matrix.target_os }} TARGET_ARCH=${{ matrix.target_arch }} DAPR_REGISTRY=ghcr.io/pravinpushkar DAPR_TAG=${{ env.REL_VERSION }}
   publish:
     name: Publish docker image and binaries
     needs: build
@@ -160,7 +147,7 @@ jobs:
       ARTIFACT_DIR: ./release
       HELM_PACKAGE_DIR: helm
       DAPR_VERSION_ARTIFACT: dapr_version
-      DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+      DOCKER_REGISTRY: ghcr.io/pravinpushkar
       HELMVER: v3.2.1
     runs-on: ubuntu-latest
     steps:
@@ -271,83 +258,18 @@ jobs:
             --body "${RELEASE_BODY}" \
             --prerelease true \
             ${RELEASE_ARTIFACT[*]}
-      - name: docker login
-        run: |
-          docker login -u ${{ secrets.DOCKER_REGISTRY_ID }} -p ${{ secrets.DOCKER_REGISTRY_PASS }}
-      - name: Build and push docker multiarch manifest
+      - name: ghcr login-2
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: pravinpushkar
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push docker multiarch manifest to ghcr
         if: matrix.target_os != 'darwin'
         run: |
           echo "Build docker multiarch image manifest and push it"
-          make docker-publish DAPR_REGISTRY=${{ secrets.DOCKER_REGISTRY }} DAPR_TAG=${{ env.REL_VERSION }}
+          make docker-publish DAPR_REGISTRY=${{ env.DOCKER_REGISTRY }} DAPR_TAG=${{ env.REL_VERSION }}
       - name: Save release version
         run: |
           mkdir -p ${{ env.ARTIFACT_DIR }}/${{ env.HELM_PACKAGE_DIR }}
           echo ${REL_VERSION} > ${{ env.ARTIFACT_DIR }}/${{ env.HELM_PACKAGE_DIR }}/${{ env.DAPR_VERSION_ARTIFACT }}
-      - name: Package Helm chart
-        if: ${{ env.LATEST_RELEASE }} == "true"
-        env:
-              HELM_CHARTS_DIR: charts/dapr
-        run: |
-          mkdir -p ${{ env.ARTIFACT_DIR }}/${{ env.HELM_PACKAGE_DIR }}
-          helm package ${{ env.HELM_CHARTS_DIR }} --destination ${{ env.ARTIFACT_DIR }}/${{ env.HELM_PACKAGE_DIR }}
-      - name: Upload Helm charts package to artifacts
-        if: ${{ env.LATEST_RELEASE }} == "true"
-        uses: actions/upload-artifact@master
-        with:
-          name: dapr_helm_charts_package
-          path: ${{ env.ARTIFACT_DIR }}/${{ env.HELM_PACKAGE_DIR }}
-  # This job downloads the helm charts package artifact uploaded by the publish job,
-  # checks out the helm charts git hub pages repo and commits the latest version of
-  # helm charts package.
-  helmpublish:
-    name: Publish helm charts to Helm github pages repo
-    needs: publish
-    if: startswith(github.ref, 'refs/tags/v')
-    env:
-      ARTIFACT_DIR: ./release
-      DAPR_VERSION_ARTIFACT: dapr_version
-      HELM_PACKAGE_DIR: helm
-    runs-on: ubuntu-latest
-    steps:
-      - name: Create Helm charts directory
-        run: |
-          mkdir -p ${{ env.ARTIFACT_DIR }}/${{ env.HELM_PACKAGE_DIR }}
-      - name: download artifacts - dapr_helm_charts_package
-        uses: actions/download-artifact@master
-        with:
-          name: dapr_helm_charts_package
-          path: ${{ env.ARTIFACT_DIR }}/${{ env.HELM_PACKAGE_DIR }}
-      - name: Checkout Helm Charts Repo
-        uses: actions/checkout@v2
-        env:
-              DAPR_HELM_REPO: dapr/helm-charts
-              DAPR_HELM_REPO_CODE_PATH: helm-charts
-        with:
-          repository: ${{ env.DAPR_HELM_REPO }}
-          ref: refs/heads/master
-          token: ${{ secrets.DAPR_BOT_TOKEN }}
-          path: ${{ env.DAPR_HELM_REPO_CODE_PATH }}
-      - name: Upload helm charts to Helm Repo
-        env:
-              DAPR_HELM_REPO_CODE_PATH: helm-charts
-              DAPR_HELM_REPO: https://dapr.github.io/helm-charts/
-        run: |
-            daprVersion=`cat ${{ env.ARTIFACT_DIR }}/${{ env.HELM_PACKAGE_DIR }}/${{ env.DAPR_VERSION_ARTIFACT }}`
-            cd ${{ env.ARTIFACT_DIR }}/${{ env.HELM_PACKAGE_DIR }}
-            cp -r `ls -A | grep -v ${{ env.DAPR_VERSION_ARTIFACT }}` $GITHUB_WORKSPACE/${{ env.DAPR_HELM_REPO_CODE_PATH }}
-            cd $GITHUB_WORKSPACE/${{ env.DAPR_HELM_REPO_CODE_PATH }}
-            helm repo index --url ${{ env.DAPR_HELM_REPO }} --merge index.yaml .
-            git config --global user.email "daprweb@microsoft.com"
-            git config --global user.name "dapr-bot"
-            git add --all
-
-            # Check if the dapr-${daprVersion}.tgz file is modified.
-            if git diff --name-only --staged | grep -q ${daprVersion}; then
-              # If it is, we update the Helm chart, since this is an intentional update.
-              git commit -m "Release - $daprVersion"
-              git push
-            else
-              # If not, this update was accidentally triggered by tagging a release before updating the Helm chart.
-              echo "::error::There is no change for ${daprVersion} Helm chart. Did you forget to update the chart version before tagging?"
-              exit -1
-            fi
