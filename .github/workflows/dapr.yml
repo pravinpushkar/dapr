@@ -127,13 +127,13 @@ jobs:
         with:
           name: dapr_grafana_dashboards
           path: ./grafana/*.json
-      - name: ghcr login-1
+      - name: ghcr login github token-1
         if: matrix.target_os != 'darwin' && github.event_name != 'pull_request'
         uses: docker/login-action@v1
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.DAPR_BOT_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker images
         if: matrix.target_os != 'darwin' && github.event_name != 'pull_request'
         run: |
