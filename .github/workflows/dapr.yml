@@ -132,7 +132,7 @@ jobs:
         uses: docker/login-action@v1
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker images
         if: matrix.target_os != 'darwin' && github.event_name != 'pull_request'
@@ -147,7 +147,7 @@ jobs:
       ARTIFACT_DIR: ./release
       HELM_PACKAGE_DIR: helm
       DAPR_VERSION_ARTIFACT: dapr_version
-      DOCKER_REGISTRY: ghcr.io/${{ github.actor }}
+      DOCKER_REGISTRY: ghcr.io/${{ github.repository_owner }}
       HELMVER: v3.2.1
     runs-on: ubuntu-latest
     steps:
@@ -262,7 +262,7 @@ jobs:
         uses: docker/login-action@v1
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker multiarch manifest to ghcr
         if: matrix.target_os != 'darwin'
