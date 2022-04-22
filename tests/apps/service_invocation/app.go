@@ -1055,7 +1055,7 @@ func badServiceCallTestHTTP(w http.ResponseWriter, r *http.Request) {
 	prevTimeout := httpClient.Timeout
 	// Explicitly set the timeout to force an error
 	if commandBody.Method == "timeouterror" {
-		httpClient.Timeout = 5 * time.Second
+		httpClient.Timeout = 5 * time.Minute
 	}
 	resp, err := httpClient.Post(sanitizeHTTPURL(url), jsonContentType, bytes.NewBuffer(b)) // nolint
 	if commandBody.Method == "timeouterror" {
@@ -1099,7 +1099,7 @@ func badServiceCallTestGrpc(w http.ResponseWriter, r *http.Request) {
 	if commandBody.Method == "timeouterror" {
 		timeoutDuration = time.Duration(5)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration*time.Minute)
 	defer cancel()
 
 	var testMessage struct {
