@@ -198,7 +198,6 @@ func TestServiceInvocationWithAllowListsForGrpcProxy(t *testing.T) {
 				fmt.Sprintf("%s/tests/invoke_test", externalURL), body)
 			t.Log("checking err...")
 			require.NoError(t, err)
-			t.Logf("checking resp...%s\n", resp)
 			var appResp appResponse
 			t.Logf("unmarshalling..%s\n", string(resp))
 			err = json.Unmarshal(resp, &appResp)
@@ -245,6 +244,7 @@ func TestServiceInvocationWithAllowLists(t *testing.T) {
 				url,
 				body)
 			t.Log("checking err...")
+			t.Logf("error is: %s, statuscode : %s, response: %s \n", err, statusCode, resp)
 			require.NoError(t, err)
 
 			var appResp appResponse
