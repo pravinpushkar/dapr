@@ -1134,7 +1134,7 @@ func timeoutServiceCall(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Entering timeoutServiceCall")
 
 	// Timeout for the client is 5 seconds, we just need to wait longer than that.
-	time.Sleep(10 * time.Second)
+	time.Sleep(10 * time.Minute)
 
 	logAndSetResponse(w, 200, "Client waited longer than it should have.")
 }

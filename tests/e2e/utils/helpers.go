@@ -87,15 +87,15 @@ func GenerateRandomStringKeyValues(num int) []SimpleKeyValue {
 
 func newHTTPClient(t time.Duration) http.Client {
 	if t == 0 {
-		t = time.Minute * 5
+		t = time.Minute * 10
 	}
 	return http.Client{
 		Timeout: t,
 		Transport: &http.Transport{
 			// Sometimes, the first connection to ingress endpoint takes longer than 1 minute (e.g. AKS)
 			Dial: (&net.Dialer{
-				Timeout:   5 * time.Minute,
-				KeepAlive: 6 * time.Minute,
+				Timeout:   15 * time.Minute,
+				KeepAlive: 16 * time.Minute,
 			}).Dial,
 		},
 	}
