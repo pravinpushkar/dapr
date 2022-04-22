@@ -919,7 +919,6 @@ func TestNegativeCases(t *testing.T) {
 
 		var testResults negativeTestResult
 		json.Unmarshal(resp, &testResults)
-
 		// TODO: This doesn't return as an error, it should be handled more gracefully in dapr
 		require.False(t, testResults.MainCallSuccessful)
 		require.Equal(t, 500, status)
