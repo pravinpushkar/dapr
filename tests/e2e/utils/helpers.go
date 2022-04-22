@@ -87,7 +87,7 @@ func GenerateRandomStringKeyValues(num int) []SimpleKeyValue {
 
 func newHTTPClient(t time.Duration) http.Client {
 	if t == 0 {
-		t = time.Second * 15
+		t = time.Minute * 5
 	}
 	return http.Client{
 		Timeout: t,
