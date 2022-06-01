@@ -2060,6 +2060,11 @@ func TestGetMetadata(t *testing.T) {
 	fakeAPI := &api{
 		id:         "fakeAPI",
 		components: []components_v1alpha.Component{fakeComponent},
+		getComponentsToCapabilitesFn: func() map[string][]string {
+			return map[string][]string{
+				"testComponent": []string{"mock.feat.testComponent"},
+			}
+		},
 	}
 	fakeAPI.extendedMetadata.Store("testKey", "testValue")
 	server := startDaprAPIServer(port, fakeAPI, "")
@@ -2075,6 +2080,8 @@ func TestGetMetadata(t *testing.T) {
 	assert.Equal(t, response.RegisteredComponents[0].Name, "testComponent")
 	assert.Contains(t, response.ExtendedMetadata, "testKey")
 	assert.Equal(t, response.ExtendedMetadata["testKey"], "testValue")
+	assert.Len(t, response.RegisteredComponents[0].Capabilities, 1, "One capabilities should be returned")
+	assert.Equal(t, response.RegisteredComponents[0].Capabilities[0], "mock.feat.testComponent")
 }
 
 func TestSetMetadata(t *testing.T) {

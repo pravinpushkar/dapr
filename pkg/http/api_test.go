@@ -1778,6 +1778,12 @@ func TestV1MetadataEndpoint(t *testing.T) {
 				},
 			}
 		},
+		getComponentsToCapabilitesFn: func() map[string][]string {
+			return map[string][]string{
+				"MockComponent1Name": []string{"mock.feat.MockComponent1Name"},
+				"MockComponent2Name": []string{"mock.feat.MockComponent2Name"},
+			}
+		},
 	}
 
 	fakeServer.StartServer(testAPI.constructMetadataEndpoints())
@@ -1787,8 +1793,18 @@ func TestV1MetadataEndpoint(t *testing.T) {
 		"actors":   []map[string]interface{}{{"type": "abcd", "count": 10}, {"type": "xyz", "count": 5}},
 		"extended": make(map[string]string),
 		"components": []map[string]interface{}{
-			{"name": "MockComponent1Name", "type": "mock.component1Type", "version": "v1.0"},
-			{"name": "MockComponent2Name", "type": "mock.component2Type", "version": "v1.0"},
+			{
+				"name":         "MockComponent1Name",
+				"type":         "mock.component1Type",
+				"version":      "v1.0",
+				"capabilities": []string{"mock.feat.MockComponent1Name"},
+			},
+			{
+				"name":         "MockComponent2Name",
+				"type":         "mock.component2Type",
+				"version":      "v1.0",
+				"capabilities": []string{"mock.feat.MockComponent2Name"},
+			},
 		},
 	}
 	expectedBodyBytes, _ := json.Marshal(expectedBody)
