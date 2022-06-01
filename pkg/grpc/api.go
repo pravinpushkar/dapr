@@ -33,6 +33,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/dapr/components-contrib/bindings"
@@ -112,27 +113,28 @@ type API interface {
 }
 
 type api struct {
-	actor                      actors.Actors
-	directMessaging            messaging.DirectMessaging
-	appChannel                 channel.AppChannel
-	resiliency                 resiliency.Provider
-	stateStores                map[string]state.Store
-	transactionalStateStores   map[string]state.TransactionalStore
-	secretStores               map[string]secretstores.SecretStore
-	secretsConfiguration       map[string]config.SecretsScope
-	configurationStores        map[string]configuration.Store
-	configurationSubscribe     map[string]chan struct{} // store map[storeName||key1,key2] -> stopChan
-	configurationSubscribeLock sync.Mutex
-	lockStores                 map[string]lock.Store
-	pubsubAdapter              runtime_pubsub.Adapter
-	id                         string
-	sendToOutputBindingFn      func(name string, req *bindings.InvokeRequest) (*bindings.InvokeResponse, error)
-	tracingSpec                config.TracingSpec
-	accessControlList          *config.AccessControlList
-	appProtocol                string
-	extendedMetadata           sync.Map
-	components                 []components_v1alpha.Component
-	shutdown                   func()
+	actor                        actors.Actors
+	directMessaging              messaging.DirectMessaging
+	appChannel                   channel.AppChannel
+	resiliency                   resiliency.Provider
+	stateStores                  map[string]state.Store
+	transactionalStateStores     map[string]state.TransactionalStore
+	secretStores                 map[string]secretstores.SecretStore
+	secretsConfiguration         map[string]config.SecretsScope
+	configurationStores          map[string]configuration.Store
+	configurationSubscribe       map[string]chan struct{} // store map[storeName||key1,key2] -> stopChan
+	configurationSubscribeLock   sync.Mutex
+	lockStores                   map[string]lock.Store
+	pubsubAdapter                runtime_pubsub.Adapter
+	id                           string
+	sendToOutputBindingFn        func(name string, req *bindings.InvokeRequest) (*bindings.InvokeResponse, error)
+	tracingSpec                  config.TracingSpec
+	accessControlList            *config.AccessControlList
+	appProtocol                  string
+	extendedMetadata             sync.Map
+	components                   []components_v1alpha.Component
+	shutdown                     func()
+	getComponentsToCapabilitesFn func() map[string]interface{}
 }
 
 func (a *api) TryLockAlpha1(ctx context.Context, req *runtimev1pb.TryLockRequest) (*runtimev1pb.TryLockResponse, error) {
@@ -282,6 +284,7 @@ func NewAPI(
 	appProtocol string,
 	getComponentsFn func() []components_v1alpha.Component,
 	shutdown func(),
+	getComponentsToCapabilitiesFn func() map[string]interface{},
 ) API {
 	transactionalStateStores := map[string]state.TransactionalStore{}
 	for key, store := range stateStores {
@@ -291,24 +294,25 @@ func NewAPI(
 	}
 
 	return &api{
-		directMessaging:          directMessaging,
-		actor:                    actor,
-		id:                       appID,
-		resiliency:               resiliency,
-		appChannel:               appChannel,
-		pubsubAdapter:            pubsubAdapter,
-		stateStores:              stateStores,
-		transactionalStateStores: transactionalStateStores,
-		secretStores:             secretStores,
-		configurationStores:      configurationStores,
-		configurationSubscribe:   make(map[string]chan struct{}),
-		lockStores:               lockStores,
-		secretsConfiguration:     secretsConfiguration,
-		sendToOutputBindingFn:    sendToOutputBindingFn,
-		tracingSpec:              tracingSpec,
-		accessControlList:        accessControlList,
-		appProtocol:              appProtocol,
-		shutdown:                 shutdown,
+		directMessaging:              directMessaging,
+		actor:                        actor,
+		id:                           appID,
+		resiliency:                   resiliency,
+		appChannel:                   appChannel,
+		pubsubAdapter:                pubsubAdapter,
+		stateStores:                  stateStores,
+		transactionalStateStores:     transactionalStateStores,
+		secretStores:                 secretStores,
+		configurationStores:          configurationStores,
+		configurationSubscribe:       make(map[string]chan struct{}),
+		lockStores:                   lockStores,
+		secretsConfiguration:         secretsConfiguration,
+		sendToOutputBindingFn:        sendToOutputBindingFn,
+		tracingSpec:                  tracingSpec,
+		accessControlList:            accessControlList,
+		appProtocol:                  appProtocol,
+		shutdown:                     shutdown,
+		getComponentsToCapabilitesFn: getComponentsToCapabilitiesFn,
 	}
 }
 
@@ -1470,12 +1474,17 @@ func (a *api) GetMetadata(ctx context.Context, in *emptypb.Empty) (*runtimev1pb.
 		return true
 	})
 	registeredComponents := make([]*runtimev1pb.RegisteredComponents, 0, len(a.components))
-
+	componentsCapabilties := a.getComponentsToCapabilitesFn()
 	for _, comp := range a.components {
+		dataByte, err := json.Marshal(componentsCapabilties[comp.Name])
+		if err != nil {
+			return nil, err
+		}
 		registeredComp := &runtimev1pb.RegisteredComponents{
-			Name:    comp.Name,
-			Version: comp.Spec.Version,
-			Type:    comp.Spec.Type,
+			Name:         comp.Name,
+			Version:      comp.Spec.Version,
+			Type:         comp.Spec.Type,
+			Capabilities: &anypb.Any{Value: dataByte},
 		}
 		registeredComponents = append(registeredComponents, registeredComp)
 	}

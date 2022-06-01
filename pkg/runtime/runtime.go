@@ -1114,6 +1114,7 @@ func (a *DaprRuntime) startHTTPServer(port int, publicPort *int, profilePort int
 		a.sendToOutputBinding,
 		a.globalConfig.Spec.TracingSpec,
 		a.ShutdownWithWait,
+		a.getComponentsToCapabilitesMap,
 	)
 	serverConf := http.NewServerConfig(
 		a.runtimeConfig.ID,
@@ -1175,9 +1176,25 @@ func (a *DaprRuntime) getNewServerConfig(apiListenAddresses []string, port int) 
 }
 
 func (a *DaprRuntime) getGRPCAPI() grpc.API {
-	return grpc.NewAPI(a.runtimeConfig.ID, a.appChannel, a.resiliency, a.stateStores, a.secretStores, a.secretsConfiguration, a.configurationStores,
-		a.lockStores, a.getPublishAdapter(), a.directMessaging, a.actor,
-		a.sendToOutputBinding, a.globalConfig.Spec.TracingSpec, a.accessControlList, string(a.runtimeConfig.ApplicationProtocol), a.getComponents, a.ShutdownWithWait)
+	return grpc.NewAPI(a.runtimeConfig.ID,
+		a.appChannel,
+		a.resiliency,
+		a.stateStores,
+		a.secretStores,
+		a.secretsConfiguration,
+		a.configurationStores,
+		a.lockStores,
+		a.getPublishAdapter(),
+		a.directMessaging,
+		a.actor,
+		a.sendToOutputBinding,
+		a.globalConfig.Spec.TracingSpec,
+		a.accessControlList,
+		string(a.runtimeConfig.ApplicationProtocol),
+		a.getComponents,
+		a.ShutdownWithWait,
+		a.getComponentsToCapabilitesMap,
+	)
 }
 
 func (a *DaprRuntime) getPublishAdapter() runtime_pubsub.Adapter {
@@ -2427,6 +2444,22 @@ func (a *DaprRuntime) getComponents() []components_v1alpha1.Component {
 	comps := make([]components_v1alpha1.Component, len(a.components))
 	copy(comps, a.components)
 	return comps
+}
+
+func (a *DaprRuntime) getComponentsToCapabilitesMap() map[string]interface{} {
+	capabilities := make(map[string]interface{})
+	for key, store := range a.stateStores {
+		features := store.Features()
+		if state.FeatureETag.IsPresent(features) && state.FeatureTransactional.IsPresent(features) {
+			var featureActor state.Feature = "ACTORS"
+			features = append(features, featureActor)
+		}
+		capabilities[key] = features
+	}
+	for key, pubsub := range a.pubSubs {
+		capabilities[key] = pubsub.Features()
+	}
+	return capabilities
 }
 
 func (a *DaprRuntime) establishSecurity(sentryAddress string) error {
