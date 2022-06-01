@@ -85,14 +85,14 @@ type api struct {
 	outboundReadyStatus          bool
 	tracingSpec                  config.TracingSpec
 	shutdown                     func()
-	getComponentsToCapabilitesFn func() map[string]interface{}
+	getComponentsToCapabilitesFn func() map[string][]string
 }
 
 type registeredComponent struct {
-	Name         string      `json:"name"`
-	Type         string      `json:"type"`
-	Version      string      `json:"version"`
-	Capabilities interface{} `json:"capabilities"`
+	Name         string   `json:"name"`
+	Type         string   `json:"type"`
+	Version      string   `json:"version"`
+	Capabilities []string `json:"capabilities"`
 }
 
 type metadata struct {
@@ -138,7 +138,7 @@ func NewAPI(
 	sendToOutputBindingFn func(name string, req *bindings.InvokeRequest) (*bindings.InvokeResponse, error),
 	tracingSpec config.TracingSpec,
 	shutdown func(),
-	getComponentsToCapabilitiesFn func() map[string]interface{},
+	getComponentsToCapabilitiesFn func() map[string][]string,
 ) API {
 	transactionalStateStores := map[string]state.TransactionalStore{}
 	for key, store := range stateStores {

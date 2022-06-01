@@ -33,7 +33,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/dapr/components-contrib/bindings"
@@ -134,7 +133,7 @@ type api struct {
 	extendedMetadata             sync.Map
 	components                   []components_v1alpha.Component
 	shutdown                     func()
-	getComponentsToCapabilitesFn func() map[string]interface{}
+	getComponentsToCapabilitesFn func() map[string][]string
 }
 
 func (a *api) TryLockAlpha1(ctx context.Context, req *runtimev1pb.TryLockRequest) (*runtimev1pb.TryLockResponse, error) {
@@ -284,7 +283,7 @@ func NewAPI(
 	appProtocol string,
 	getComponentsFn func() []components_v1alpha.Component,
 	shutdown func(),
-	getComponentsToCapabilitiesFn func() map[string]interface{},
+	getComponentsToCapabilitiesFn func() map[string][]string,
 ) API {
 	transactionalStateStores := map[string]state.TransactionalStore{}
 	for key, store := range stateStores {
@@ -1476,15 +1475,11 @@ func (a *api) GetMetadata(ctx context.Context, in *emptypb.Empty) (*runtimev1pb.
 	registeredComponents := make([]*runtimev1pb.RegisteredComponents, 0, len(a.components))
 	componentsCapabilties := a.getComponentsToCapabilitesFn()
 	for _, comp := range a.components {
-		dataByte, err := json.Marshal(componentsCapabilties[comp.Name])
-		if err != nil {
-			return nil, err
-		}
 		registeredComp := &runtimev1pb.RegisteredComponents{
 			Name:         comp.Name,
 			Version:      comp.Spec.Version,
 			Type:         comp.Spec.Type,
-			Capabilities: &anypb.Any{Value: dataByte},
+			Capabilities: componentsCapabilties[comp.Name],
 		}
 		registeredComponents = append(registeredComponents, registeredComp)
 	}

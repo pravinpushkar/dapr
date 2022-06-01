@@ -2446,20 +2446,33 @@ func (a *DaprRuntime) getComponents() []components_v1alpha1.Component {
 	return comps
 }
 
-func (a *DaprRuntime) getComponentsToCapabilitesMap() map[string]interface{} {
-	capabilities := make(map[string]interface{})
+func (a *DaprRuntime) getComponentsToCapabilitesMap() map[string][]string {
+	capabilities := make(map[string][]string)
 	for key, store := range a.stateStores {
 		features := store.Features()
+		stateStoreCapabilities := featureTypeToString(features)
 		if state.FeatureETag.IsPresent(features) && state.FeatureTransactional.IsPresent(features) {
-			var featureActor state.Feature = "ACTORS"
-			features = append(features, featureActor)
+			stateStoreCapabilities = append(stateStoreCapabilities, "ACTOR")
 		}
-		capabilities[key] = features
+		capabilities[key] = stateStoreCapabilities
 	}
 	for key, pubsub := range a.pubSubs {
-		capabilities[key] = pubsub.Features()
+		capabilities[key] = featureTypeToString(pubsub.Features())
 	}
 	return capabilities
+}
+
+// converts components Features from FeatureType to string
+func featureTypeToString(features interface{}) []string {
+	featureStr := make([]string, 0)
+	switch reflect.TypeOf(features).Kind() {
+	case reflect.Slice:
+		val := reflect.ValueOf(features)
+		for i := 0; i < val.Len(); i++ {
+			featureStr = append(featureStr, val.Index(i).String())
+		}
+	}
+	return featureStr
 }
 
 func (a *DaprRuntime) establishSecurity(sentryAddress string) error {
