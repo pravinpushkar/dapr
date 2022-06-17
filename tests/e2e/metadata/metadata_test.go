@@ -1,6 +1,3 @@
-//go:build e2e
-// +build e2e
-
 /*
 Copyright 2021 The Dapr Authors
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -57,6 +54,10 @@ func testGetMetadata(t *testing.T, metadataAppExternalURL string) {
 	t.Log("Getting sidecar metadata")
 	url := fmt.Sprintf("%s/test/getMetadata", metadataAppExternalURL)
 	resp, err := utils.HTTPGet(url)
+	fmt.Println("pravin#########")
+	fmt.Println(resp)
+	fmt.Println(err)
+	fmt.Println("pravin######### end")
 	require.NoError(t, err)
 	require.NotEmpty(t, resp, "response must not be empty!")
 	metadata := mockMetadata{}
