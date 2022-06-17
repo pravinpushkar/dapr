@@ -40,10 +40,9 @@ const (
 
 // requestResponse represents a request or response for the APIs in this app.
 type requestResponse struct {
-	StartTime  int    `json:"start_time,omitempty"`
-	EndTime    int    `json:"end_time,omitempty"`
-	Message    string `json:"message,omitempty"`
-	StatusCode int    `json:"status_code,omitempty"`
+	StartTime int    `json:"start_time,omitempty"`
+	EndTime   int    `json:"end_time,omitempty"`
+	Message   string `json:"message,omitempty"`
 }
 
 func indexHandler(w http.ResponseWriter, _ *http.Request) {
@@ -78,7 +77,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	res := requestResponse{}
 	uri := r.URL.RequestURI()
-	var statusCode int
+	statusCode := http.StatusOK
 
 	res.StartTime = epoch()
 
@@ -87,16 +86,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	case "getMetadata":
 		metadata, err = getMetadata()
 		if err != nil {
-			fmt.Println("in handler getMetadata error")
-			res.StatusCode = http.StatusInternalServerError
+			statusCode = http.StatusInternalServerError
 			res.Message = err.Error()
-		} else {
-			res.StatusCode = http.StatusOK
-			res.Message = string(metadata)
 		}
 	default:
 		err = fmt.Errorf("invalid URI: %s", uri)
-		res.StatusCode = http.StatusBadRequest
+		statusCode = http.StatusBadRequest
 		res.Message = err.Error()
 	}
 
@@ -106,8 +101,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error status code %v: %v", statusCode, res.Message)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(res.StatusCode)
-	json.NewEncoder(w).Encode(res.Message)
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(metadata)
 }
 
 // epoch returns the current unix epoch timestamp
