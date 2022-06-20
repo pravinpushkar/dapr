@@ -35,10 +35,10 @@ require (
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.12.2
-	github.com/prometheus/client_model v0.2.0
-	github.com/prometheus/common v0.34.0
+	github.com/prometheus/client_model v0.2.0 // indirect
+	github.com/prometheus/common v0.34.0 // indirect
 	github.com/sony/gobreaker v0.4.2-0.20210216022020-dd874f9dd33b
-	github.com/stretchr/testify v1.7.1
+	github.com/stretchr/testify v1.7.2
 	github.com/trusch/grpc-proxy v0.0.0-20190529073533-02b64529f274
 	github.com/valyala/fasthttp v1.31.1-0.20211216042702-258a4c17b4f4
 	go.opencensus.io v0.23.0
@@ -354,7 +354,7 @@ require (
 	gopkg.in/jcmturner/rpc.v1 v1.1.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/component-base v0.23.0 // indirect
 	k8s.io/gengo v0.0.0-20210813121822-485abfe95c7c // indirect
 	k8s.io/klog/v2 v2.30.0 // indirect
