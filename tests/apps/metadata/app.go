@@ -66,6 +66,7 @@ func getMetadata() (data []byte, err error) {
 
 		return nil, fmt.Errorf("got err response for get Metadata: %s", body)
 	}
+	fmt.Printf("\n ##### Pravin Data: %s", body)
 	return body, nil
 }
 
