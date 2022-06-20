@@ -60,8 +60,9 @@ func testGetMetadata(t *testing.T, metadataAppExternalURL string) {
 	fmt.Println("pravin######### end")
 	require.NoError(t, err)
 	require.NotEmpty(t, resp, "response must not be empty!")
-	metadata := mockMetadata{}
+	var metadata mockMetadata
 	err = json.Unmarshal(resp, &metadata)
+	fmt.Println(metadata.RegisteredComponents)
 	require.NoError(t, err)
 	for _, comp := range metadata.RegisteredComponents {
 		require.NotEmpty(t, comp.Name, "component name must not be empty!")

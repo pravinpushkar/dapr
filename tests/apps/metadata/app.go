@@ -25,6 +25,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dapr/dapr/pkg/actors"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -45,36 +46,53 @@ type requestResponse struct {
 	Message   string `json:"message,omitempty"`
 }
 
+type mockMetadata struct {
+	ID                   string                     `json:"id"`
+	ActiveActorsCount    []actors.ActiveActorsCount `json:"actors"`
+	Extended             map[string]string          `json:"extended"`
+	RegisteredComponents []mockRegisteredComponent  `json:"components"`
+}
+
+type mockRegisteredComponent struct {
+	Name         string   `json:"name"`
+	Type         string   `json:"type"`
+	Version      string   `json:"version"`
+	Capabilities []string `json:"capabilities"`
+}
+
 func indexHandler(w http.ResponseWriter, _ *http.Request) {
 	log.Println("indexHandler is called")
 	w.WriteHeader(http.StatusOK)
 }
 
-func getMetadata() (data []byte, err error) {
+func getMetadata() (data mockMetadata, err error) {
+	var metadata mockMetadata
 	res, err := http.Get(metadataURL)
 	if err != nil {
-		return nil, fmt.Errorf("could not get sidecar metadata %s", err.Error())
+		return metadata, fmt.Errorf("could not get sidecar metadata %s", err.Error())
 	}
 	defer res.Body.Close()
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("could not load value for Metadata: %s", err.Error())
+		return metadata, fmt.Errorf("could not load value for Metadata: %s", err.Error())
 	}
 	if res.StatusCode != http.StatusOK {
 		log.Printf("Non 200 StatusCode: %d\n", res.StatusCode)
 
-		return nil, fmt.Errorf("got err response for get Metadata: %s", body)
+		return metadata, fmt.Errorf("got err response for get Metadata: %s", body)
 	}
 	fmt.Printf("\n ##### Pravin Data: %s", body)
-	return body, nil
+	err = json.Unmarshal(body, &metadata)
+	fmt.Println(metadata.RegisteredComponents)
+	return metadata, nil
 }
 
 // handles all APIs
 func handler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Processing request for %s", r.URL.RequestURI())
 
-	var metadata []byte
+	var metadata mockMetadata
 	var err error
 	res := requestResponse{}
 	uri := r.URL.RequestURI()
