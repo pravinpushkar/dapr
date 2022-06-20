@@ -65,7 +65,8 @@ func testGetMetadata(t *testing.T, metadataAppExternalURL string) {
 	fmt.Println(metadata.RegisteredComponents)
 	require.NoError(t, err)
 	for _, comp := range metadata.RegisteredComponents {
-		require.NotEmpty(t, comp.Name, "component name must not be empty!")
+		fmt.Println("in for loop###########")
+		require.Empty(t, comp.Name, "component name must be empty!")
 		require.NotEmpty(t, comp.Type, "component type must not be empty!")
 		require.True(t, len(comp.Capabilities) >= 0, "component capabilities key must be present!")
 	}
